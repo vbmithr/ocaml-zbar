@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: 70265f04acb17653730ff08b1abcf342)
+version = "0.1"
+description = "Binding to ZBar"
+requires = "ctypes.foreign"
+archive(byte) = "zbar.cma"
+archive(byte, plugin) = "zbar.cma"
+archive(native) = "zbar.cmxa"
+archive(native, plugin) = "zbar.cmxs"
+exists_if = "zbar.cma"
+# OASIS_STOP
+

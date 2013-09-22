@@ -1,0 +1,21 @@
+OASISFormat: 0.3
+Name: zbar
+Version: 0.1
+Synopsis: Binding to ZBar
+Authors: Vincent Bernardoff <vb@luminar.eu.org>
+License: ISC
+Plugins: META (0.3), DevFiles (0.3)
+BuildTools: ocamlbuild
+
+Library zbar
+  Path: lib
+  Modules: Zbar
+  BuildDepends: ctypes.foreign
+  CompiledObject: best
+
+Executable test
+  Path: test
+  MainIs: test.ml
+  BuildDepends: zbar
+  CompiledObject: best
+  Install: false
