@@ -77,8 +77,12 @@ let set_verb level = verb := level
 let from = Dl.(dlopen ~filename:"libzbar.so" ~flags:[RTLD_LAZY])
 
 module Image = struct
-  type t
-  let t : t structure typ = structure "zbar_image_s"
+  type _t
+  let t : _t structure typ = structure "zbar_image_s"
+
+  type t = _t structure ptr
+
+  let destroy = foreign ~from "zbar_image_destroy" (ptr t @-> returning void)
 end
 
 module Video = struct
@@ -143,4 +147,13 @@ module Video = struct
     (fun () -> _enable h 0)
     i_int
     (fun () -> error_string h !verb)
+
+  let stream h =
+    enable h;
+    Lwt_stream.from (fun () ->
+        Lwt_unix.(wrap_syscall
+                    Read
+                    (of_unix_file_descr (get_fd h))
+                    (fun () -> next_image h)))
+
 end

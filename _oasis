@@ -10,7 +10,7 @@ BuildTools: ocamlbuild
 Library zbar
   Path: lib
   Modules: Zbar
-  BuildDepends: ctypes.foreign
+  BuildDepends: ctypes.foreign, lwt.unix
   CompiledObject: best
 
 Executable test
