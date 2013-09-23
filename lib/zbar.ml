@@ -1,5 +1,6 @@
 open Ctypes
 open Foreign
+open Util
 
 type color =
   [
@@ -11,49 +12,6 @@ let int_of_color = function
   | `Space -> 0
   | `Bar -> 1
 
-type symbol =
-  [
-  | `None
-  | `Partial
-  | `Ean2
-  | `Ean5
-  | `Ean8
-  | `Upce
-  | `Isbn10
-  | `Upca
-  | `Ean13
-  | `Composite
-  | `I25
-  | `Databar
-  | `Databar_exp
-  | `Codabar
-  | `Code39
-  | `Pdf417
-  | `Qrcode
-  | `Code93
-  | `Code128
-  ]
-
-let int_of_symbol = function
-  | `None -> 0
-  | `Partial -> 1
-  | `Ean2 -> 2
-  | `Ean5 -> 5
-  | `Ean8 -> 8
-  | `Upce -> 9
-  | `Isbn10 -> 10
-  | `Upca -> 12
-  | `Ean13 -> 13
-  | `Composite -> 14
-  | `I25 -> 15
-  | `Databar -> 25
-  | `Databar_exp -> 34
-  | `Codabar -> 35
-  | `Code39 -> 39
-  | `Pdf417 -> 57
-  | `Qrcode -> 64
-  | `Code93 -> 93
-  | `Code128 -> 128
 
 type orientation =
   [
@@ -76,6 +34,88 @@ let set_verb level = verb := level
 
 let from = Dl.(dlopen ~filename:"libzbar.so" ~flags:[RTLD_LAZY])
 
+module Symbol = struct
+  type symbol =
+    [
+      | `None
+      | `Partial
+      | `Ean2
+      | `Ean5
+      | `Ean8
+      | `Upce
+      | `Isbn10
+      | `Upca
+      | `Ean13
+      | `Composite
+      | `I25
+      | `Databar
+      | `Databar_exp
+      | `Codabar
+      | `Code39
+      | `Pdf417
+      | `Qrcode
+      | `Code93
+      | `Code128
+    ]
+
+  let int_of_symbol = function
+    | `None -> 0
+    | `Partial -> 1
+    | `Ean2 -> 2
+    | `Ean5 -> 5
+    | `Ean8 -> 8
+    | `Upce -> 9
+    | `Isbn10 -> 10
+    | `Upca -> 12
+    | `Ean13 -> 13
+    | `Composite -> 14
+    | `I25 -> 15
+    | `Databar -> 25
+    | `Databar_exp -> 34
+    | `Codabar -> 35
+    | `Code39 -> 39
+    | `Pdf417 -> 57
+    | `Qrcode -> 64
+    | `Code93 -> 93
+    | `Code128 -> 128
+
+  let symbol_of_int = function
+    | 0 -> `None
+    | 1 -> `Partial
+    | 2 -> `Ean2
+    | 3 -> `Ean5
+    | 8 -> `Ean8
+    | 9 -> `Upce
+    | 10 -> `Isbn10
+    | 12 -> `Upca
+    | 13 -> `Ean13
+    | 14 -> `Composite
+    | 15 -> `I25
+    | 25 -> `Databar
+    | 34 -> `Databar_exp
+    | 39 -> `Code39
+    | 57 -> `Pdf417
+    | 64 -> `Qrcode
+    | 93 -> `Code93
+    | 128 -> `Code128
+    | _ -> raise (Invalid_argument "symbol_of_int")
+
+  type _t
+  let t : _t structure typ = structure "zbar_symbol_s"
+  type t = _t structure ptr
+
+  type _set
+  let set : _set structure typ = structure "zbar_symbol_set_s"
+  type set = _set structure ptr
+
+  let next = foreign ~from "zbar_symbol_next" (ptr t @-> returning (ptr_opt t))
+  let _get_type = foreign ~from "zbar_symbol_get_type" (ptr t @-> returning int)
+  let get_data = foreign ~from "zbar_symbol_get_data" (ptr t @-> returning string)
+
+  let get_type h =
+    symbol_of_int (_get_type h)
+end
+
 module Image = struct
   type _t
   let t : _t structure typ = structure "zbar_image_s"
@@ -83,6 +123,14 @@ module Image = struct
   type t = _t structure ptr
 
   let destroy = foreign ~from "zbar_image_destroy" (ptr t @-> returning void)
+  let get_symbols = foreign ~from "zbar_image_get_symbols" (ptr t @-> returning (ptr_opt Symbol.set))
+  let first_symbol = foreign ~from "zbar_image_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
+
+  let stream img =
+    let sym = ref (first_symbol img) in
+    Lwt_stream.from_direct
+      (fun () -> let cur = !sym in sym := Opt.(!sym >>= fun s -> Symbol.next s); cur)
+
 end
 
 module Video = struct

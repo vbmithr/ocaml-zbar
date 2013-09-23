@@ -1,0 +1,21 @@
+module Opt = struct
+  type 'a t = 'a option
+
+  let return x = Some x
+
+  let (>>=) x f = match x with
+    | Some x -> f x
+    | None -> None
+
+  let (>|=) x f = match x with
+    | Some x -> Some (f x)
+    | None -> None
+
+  let run = function
+    | Some x -> x
+    | None -> failwith "Opt.run"
+
+  let default d = function
+    | Some x -> x
+    | None -> d
+end

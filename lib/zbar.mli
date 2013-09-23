@@ -1,6 +1,15 @@
+module Symbol : sig
+  type t
+  type symbol
+
+  val get_data : t -> string
+  val get_type : t -> symbol
+end
+
 module Image : sig
   type t
   val destroy : t -> unit
+  val stream : t -> Symbol.t Lwt_stream.t
 end
 
 module Video : sig
