@@ -19,3 +19,12 @@ module Opt = struct
     | Some x -> x
     | None -> d
 end
+
+let i_int (i:int) = ignore i
+
+let wrap_int f success error =
+  match f () with
+  | -1 -> failwith (error ())
+  | oth -> success oth
+
+let (|>) x f = f x

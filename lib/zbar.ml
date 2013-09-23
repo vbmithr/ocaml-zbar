@@ -4,8 +4,8 @@ open Util
 
 type color =
   [
-  | `Space
-  | `Bar
+    | `Space
+    | `Bar
   ]
 
 let int_of_color = function
@@ -15,27 +15,64 @@ let int_of_color = function
 
 type orientation =
   [
-  | `Unknown
-  | `Up
-  | `Right
-  | `Down
-  | `Left
+    | `Unknown
+    | `Up
+    | `Right
+    | `Down
+    | `Left
   ]
 
-let i_int (i:int) = ignore i
+type config =
+  [
+    | `Enable
+    | `Add_check
+    | `Emit_check
+    | `Ascii
+    | `Num
+    | `Min_len
+    | `Max_len
+    | `Uncertainty
+    | `Position
+    | `X_density
+    | `Y_density
+  ]
 
-let wrap_int f success error =
-  match f () with
-  | -1 -> failwith (error ())
-  | oth -> success oth
+let int_of_config = function
+  | `Enable -> 0
+  | `Add_check -> 1
+  | `Emit_check -> 2
+  | `Ascii -> 3
+  | `Num -> 4
+  | `Min_len -> 0x20
+  | `Max_len -> 0x21
+  | `Uncertainty -> 0x40
+  | `Position -> 0x80
+  | `X_density -> 0x100
+  | `Y_density -> 0x101
+
+let config_of_int = function
+  | 0 -> `Enable
+  | 1 -> `Add_check
+  | 2 -> `Emit_check
+  | 3 -> `Ascii
+  | 4 -> `Num
+  | 0x20 -> `Min_len
+  | 0x21 -> `Max_len
+  | 0x40 -> `Uncertainty
+  | 0x80 -> `Postition
+  | 0x100 -> `X_density
+  | 0x101 -> `Y_density
+  | _ -> raise (Invalid_argument "config_of_int")
+
 
 let verb = ref 0
 let set_verb level = verb := level
 
 let from = Dl.(dlopen ~filename:"libzbar.so" ~flags:[RTLD_LAZY])
 
+
 module Symbol = struct
-  type symbol =
+  type symbology =
     [
       | `None
       | `Partial
@@ -58,7 +95,7 @@ module Symbol = struct
       | `Code128
     ]
 
-  let int_of_symbol = function
+  let int_of_symbology = function
     | `None -> 0
     | `Partial -> 1
     | `Ean2 -> 2
@@ -79,7 +116,7 @@ module Symbol = struct
     | `Code93 -> 93
     | `Code128 -> 128
 
-  let symbol_of_int = function
+  let symbology_of_int = function
     | 0 -> `None
     | 1 -> `Partial
     | 2 -> `Ean2
@@ -104,16 +141,27 @@ module Symbol = struct
   let t : _t structure typ = structure "zbar_symbol_s"
   type t = _t structure ptr
 
-  type _set
-  let set : _set structure typ = structure "zbar_symbol_set_s"
-  type set = _set structure ptr
 
   let next = foreign ~from "zbar_symbol_next" (ptr t @-> returning (ptr_opt t))
   let _get_type = foreign ~from "zbar_symbol_get_type" (ptr t @-> returning int)
   let get_data = foreign ~from "zbar_symbol_get_data" (ptr t @-> returning string)
 
   let get_type h =
-    symbol_of_int (_get_type h)
+    symbology_of_int (_get_type h)
+end
+
+module SymbolSet = struct
+  type _t
+  let t : _t structure typ = structure "zbar_symbol_set_s"
+  type t = _t structure ptr
+
+  let length = foreign ~from "zbar_symbol_set_get_size" (ptr t @-> returning int)
+  let first_symbol = foreign ~from "zbar_symbol_set_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
+
+  let to_stream h =
+    let sym = ref (first_symbol h) in
+    Lwt_stream.from_direct
+      (fun () -> let cur = !sym in sym := Opt.(!sym >>= fun s -> Symbol.next s); cur)
 end
 
 module Image = struct
@@ -123,14 +171,31 @@ module Image = struct
   type t = _t structure ptr
 
   let destroy = foreign ~from "zbar_image_destroy" (ptr t @-> returning void)
-  let get_symbols = foreign ~from "zbar_image_get_symbols" (ptr t @-> returning (ptr_opt Symbol.set))
+  let get_symbols = foreign ~from "zbar_image_get_symbols" (ptr t @-> returning (ptr_opt SymbolSet.t))
   let first_symbol = foreign ~from "zbar_image_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
 
-  let stream img =
-    let sym = ref (first_symbol img) in
-    Lwt_stream.from_direct
-      (fun () -> let cur = !sym in sym := Opt.(!sym >>= fun s -> Symbol.next s); cur)
+end
 
+module ImageScanner = struct
+  type _t
+  let t : _t structure typ = structure "zbar_image_scanner_s"
+  type t = _t structure ptr
+
+  let create = foreign ~from "zbar_image_scanner_create" (void @-> returning (ptr t))
+  let destroy = foreign ~from "zbar_image_scanner_destroy" (ptr t @-> returning void)
+  let _set_config = foreign ~from "zbar_image_scanner_set_config" (ptr t @-> int @-> int @-> int @-> returning int)
+  let error_string = foreign ~from "_zbar_error_string" (ptr t @-> int @-> returning string)
+
+  let set_config h symbology config value =
+    _set_config h Symbol.(int_of_symbology symbology) (int_of_config config) value
+
+  let _scan_image = foreign ~from "zbar_scan_image" (ptr t @-> ptr Image.t @-> returning int)
+  let _get_results = foreign ~from "zbar_image_scanner_get_results" (ptr t @-> returning (ptr SymbolSet.t))
+
+  let scan_image h i = match _scan_image h i with
+    | 0 -> Lwt_stream.from_direct (fun () -> None)
+    | n when n < 0 -> failwith (error_string h !verb)
+    | n -> SymbolSet.to_stream (_get_results h)
 end
 
 module Video = struct
