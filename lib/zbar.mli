@@ -1,3 +1,6 @@
+val set_verbosity : int -> unit
+val increase_verbosity : unit -> unit
+
 type config =
   [
     | `Enable
@@ -45,11 +48,15 @@ end
 module Image : sig
   type t
   val destroy : t -> unit
+  val convert : t -> string -> t
 end
 
 module ImageScanner : sig
   type t
-  val set_config : t -> Symbol.symbology -> config -> int -> int
+  val create : unit -> t
+  val destroy : t -> unit
+  val set_config : t -> Symbol.symbology -> config -> int -> unit
+  val enable_cache : t -> bool -> unit
   val scan_image : t -> Image.t -> Symbol.t Lwt_stream.t
 end
 

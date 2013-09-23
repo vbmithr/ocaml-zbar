@@ -64,12 +64,19 @@ let config_of_int = function
   | 0x101 -> `Y_density
   | _ -> raise (Invalid_argument "config_of_int")
 
-
-let verb = ref 0
-let set_verb level = verb := level
-
 let from = Dl.(dlopen ~filename:"libzbar.so" ~flags:[RTLD_LAZY])
 
+let verb = ref 0
+let _set_verbosity = foreign ~from "zbar_set_verbosity" (int @-> returning void)
+let _increase_verbosity = foreign ~from "zbar_increase_verbosity" (void @-> returning void)
+
+let set_verbosity v =
+  verb := v;
+  _set_verbosity v
+
+let increase_verbosity () =
+  incr verb;
+  _increase_verbosity ()
 
 module Symbol = struct
   type symbology =
@@ -173,7 +180,21 @@ module Image = struct
   let destroy = foreign ~from "zbar_image_destroy" (ptr t @-> returning void)
   let get_symbols = foreign ~from "zbar_image_get_symbols" (ptr t @-> returning (ptr_opt SymbolSet.t))
   let first_symbol = foreign ~from "zbar_image_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
+  let _convert = foreign ~from "zbar_image_convert" (ptr t @-> uint32_t @-> returning (ptr t))
 
+  let convert i fmt =
+    if String.length fmt <> 4 then
+      raise (Invalid_argument "Image.convert: format should be a string of length 4")
+    else
+      let open Unsigned.UInt32 in
+      let a, b, c, d = Char.(code fmt.[0], code fmt.[1], code fmt.[2], code fmt.[3]) in
+      let fmt = of_int a in
+      let fmt = logor fmt (shift_left (of_int b) 8) in
+      let fmt = logor fmt (shift_left (of_int c) 16) in
+      let fmt = logor fmt (shift_left (of_int d) 24) in
+      let converted = _convert i fmt in
+      destroy i;
+      converted
 end
 
 module ImageScanner = struct
@@ -184,17 +205,24 @@ module ImageScanner = struct
   let create = foreign ~from "zbar_image_scanner_create" (void @-> returning (ptr t))
   let destroy = foreign ~from "zbar_image_scanner_destroy" (ptr t @-> returning void)
   let _set_config = foreign ~from "zbar_image_scanner_set_config" (ptr t @-> int @-> int @-> int @-> returning int)
-  let error_string = foreign ~from "_zbar_error_string" (ptr t @-> int @-> returning string)
 
-  let set_config h symbology config value =
-    _set_config h Symbol.(int_of_symbology symbology) (int_of_config config) value
+  let set_config h symbology config value = wrap_int
+      (fun () -> _set_config h Symbol.(int_of_symbology symbology) (int_of_config config) value)
+      i_int
+      (fun () -> "ImageScanner.set_config")
 
   let _scan_image = foreign ~from "zbar_scan_image" (ptr t @-> ptr Image.t @-> returning int)
   let _get_results = foreign ~from "zbar_image_scanner_get_results" (ptr t @-> returning (ptr SymbolSet.t))
+  let _enable_cache = foreign ~from "zbar_image_scanner_enable_cache" (ptr t @-> int @-> returning void)
 
-  let scan_image h i = match _scan_image h i with
+  let enable_cache h v = _enable_cache h (if v then 1 else 0)
+
+  let scan_image h i =
+    let res = _scan_image h i in
+    Image.destroy i;
+    match res with
     | 0 -> Lwt_stream.from_direct (fun () -> None)
-    | n when n < 0 -> failwith (error_string h !verb)
+    | n when n < 0 -> failwith (Printf.sprintf "ImageScanner.scan_image returns code %d" n)
     | n -> SymbolSet.to_stream (_get_results h)
 end
 
