@@ -1,6 +1,39 @@
+#if ocaml_version < (4,1)
+let (@@) f x = f x
+let (|>) x f = f x
+#endif
+
+module Opt = struct
+  type 'a t = 'a option
+
+  let return x = Some x
+
+  let (>>=) x f = match x with
+    | Some x -> f x
+    | None -> None
+
+  let (>|=) x f = match x with
+    | Some x -> Some (f x)
+    | None -> None
+
+  let run = function
+    | Some x -> x
+    | None -> failwith "Opt.run"
+
+  let default d = function
+    | Some x -> x
+    | None -> d
+end
+
+let i_int (i:int) = ignore i
+
+let wrap_int f success error =
+  match f () with
+  | -1 -> failwith (error ())
+  | oth -> success oth
+
 open Ctypes
 open Foreign
-open Util
 
 type color =
   [
@@ -285,9 +318,9 @@ module Video = struct
       (fun () -> error_string h !verb)
 
   let disable h = wrap_int
-    (fun () -> _enable h 0)
-    i_int
-    (fun () -> error_string h !verb)
+      (fun () -> _enable h 0)
+      i_int
+      (fun () -> error_string h !verb)
 
   let stream h =
     enable h;
