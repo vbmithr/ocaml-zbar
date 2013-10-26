@@ -1,8 +1,3 @@
-#if ocaml_version < (4,1)
-let (@@) f x = f x
-let (|>) x f = f x
-#endif
-
 module Opt = struct
   type 'a t = 'a option
 
