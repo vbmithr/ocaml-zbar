@@ -14,7 +14,7 @@ let main dev cached verb =
   let symbols = Lwt_stream.map (fun img -> ImageScanner.scan_image scanner img) imgs in
   Lwt_stream.iter_s
     (fun syms -> Lwt_stream.iter_s
-        (fun s -> Printf.printf "%s\n" (Symbol.get_data s) |> Lwt.return) syms) symbols
+        (fun s -> Printf.printf "%s\n%!" (Symbol.get_data s) |> Lwt.return) syms) symbols
   >>= fun () ->
   Video.disable dev;
   Video.closedev dev;
