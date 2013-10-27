@@ -20,6 +20,8 @@ module Opt = struct
     | None -> d
 end
 
+let (>>=) = Lwt.(>>=)
+
 let i_int (i:int) = ignore i
 
 let wrap_int f success error =
@@ -197,6 +199,13 @@ module SymbolSet = struct
     let sym = ref (first_symbol h) in
     Lwt_stream.from_direct
       (fun () -> let cur = !sym in sym := Opt.(!sym >>= fun s -> Symbol.next s); cur)
+
+  let to_list h =
+    let rec inner acc = function
+      | Some s -> inner (s::acc) (Symbol.next s)
+      | None -> acc
+    in
+    List.rev (inner [] (first_symbol h))
 end
 
 module Image = struct
@@ -249,9 +258,9 @@ module ImageScanner = struct
     let res = _scan_image h i in
     Image.destroy i;
     match res with
-    | 0 -> Lwt_stream.from_direct (fun () -> None)
-    | n when n < 0 -> failwith (Printf.sprintf "ImageScanner.scan_image returns code %d" n)
-    | n -> SymbolSet.to_stream (_get_results h)
+    | 0 -> []
+    | n when n < 0 -> raise (Failure (Printf.sprintf "ImageScanner.scan_image returns code %d" n))
+    | n -> SymbolSet.to_list (_get_results h)
 end
 
 module Video = struct

@@ -57,7 +57,7 @@ module ImageScanner : sig
   val destroy : t -> unit
   val set_config : t -> Symbol.symbology -> config -> int -> unit
   val enable_cache : t -> bool -> unit
-  val scan_image : t -> Image.t -> Symbol.t Lwt_stream.t
+  val scan_image : t -> Image.t -> Symbol.t list
 end
 
 module Video : sig
