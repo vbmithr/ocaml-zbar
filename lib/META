@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 29bf9e3b5247f015ba9573136cbbac71)
-version = "0.1"
+# DO NOT EDIT (digest: 5ad7567c1232bfe5c507ae4394e5f4c6)
+version = "0.9"
 description = "Binding to ZBar"
 requires = "ctypes.foreign lwt.unix"
 archive(byte) = "zbar.cma"

@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name: zbar
-Version: 0.1
+Version: 0.9
 Synopsis: Binding to ZBar
 Authors: Vincent Bernardoff <vb@luminar.eu.org>
 License: ISC
@@ -19,3 +19,12 @@ Executable test
   BuildDepends: zbar
   CompiledObject: best
   Install: false
+
+Document "zbar-api"
+  Title: API reference for Zbar
+  Type: ocamlbuild (0.3)
+  Install: true
+  InstallDir: $htmldir/api
+  BuildTools: ocamldoc
+  XOCamlbuildPath: ./lib
+  XOCamlbuildLibraries: zbar

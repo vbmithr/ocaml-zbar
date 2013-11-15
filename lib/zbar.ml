@@ -52,47 +52,6 @@ type orientation =
     | `Left
   ]
 
-type config =
-  [
-    | `Enable
-    | `Add_check
-    | `Emit_check
-    | `Ascii
-    | `Num
-    | `Min_len
-    | `Max_len
-    | `Uncertainty
-    | `Position
-    | `X_density
-    | `Y_density
-  ]
-
-let int_of_config = function
-  | `Enable -> 0
-  | `Add_check -> 1
-  | `Emit_check -> 2
-  | `Ascii -> 3
-  | `Num -> 4
-  | `Min_len -> 0x20
-  | `Max_len -> 0x21
-  | `Uncertainty -> 0x40
-  | `Position -> 0x80
-  | `X_density -> 0x100
-  | `Y_density -> 0x101
-
-let config_of_int = function
-  | 0 -> `Enable
-  | 1 -> `Add_check
-  | 2 -> `Emit_check
-  | 3 -> `Ascii
-  | 4 -> `Num
-  | 0x20 -> `Min_len
-  | 0x21 -> `Max_len
-  | 0x40 -> `Uncertainty
-  | 0x80 -> `Postition
-  | 0x100 -> `X_density
-  | 0x101 -> `Y_density
-  | _ -> raise (Invalid_argument "config_of_int")
 
 let from = Dl.(dlopen ~filename:"libzbar.so" ~flags:[RTLD_LAZY])
 
@@ -239,6 +198,49 @@ module ImageScanner = struct
   let t : _t structure typ = structure "zbar_image_scanner_s"
   type t = _t structure ptr
 
+  type config =
+    [
+      | `Enable
+      | `Add_check
+      | `Emit_check
+      | `Ascii
+      | `Num
+      | `Min_len
+      | `Max_len
+      | `Uncertainty
+      | `Position
+      | `X_density
+      | `Y_density
+    ]
+
+  let int_of_config = function
+    | `Enable -> 0
+    | `Add_check -> 1
+    | `Emit_check -> 2
+    | `Ascii -> 3
+    | `Num -> 4
+    | `Min_len -> 0x20
+    | `Max_len -> 0x21
+    | `Uncertainty -> 0x40
+    | `Position -> 0x80
+    | `X_density -> 0x100
+    | `Y_density -> 0x101
+
+  let config_of_int = function
+    | 0 -> `Enable
+    | 1 -> `Add_check
+    | 2 -> `Emit_check
+    | 3 -> `Ascii
+    | 4 -> `Num
+    | 0x20 -> `Min_len
+    | 0x21 -> `Max_len
+    | 0x40 -> `Uncertainty
+    | 0x80 -> `Postition
+    | 0x100 -> `X_density
+    | 0x101 -> `Y_density
+    | _ -> raise (Invalid_argument "config_of_int")
+
+
   let create = foreign ~from "zbar_image_scanner_create" (void @-> returning (ptr t))
   let destroy = foreign ~from "zbar_image_scanner_destroy" (ptr t @-> returning void)
   let _set_config = foreign ~from "zbar_image_scanner_set_config" (ptr t @-> int @-> int @-> int @-> returning int)
@@ -282,6 +284,12 @@ module Video = struct
   let _enable = foreign ~from "zbar_video_enable" (ptr t @-> int @-> returning int)
   let next_image = foreign ~from "zbar_video_next_image" (ptr t @-> returning (ptr_opt Image.t))
   let error_string = foreign ~from "_zbar_error_string" (ptr t @-> int @-> returning string)
+
+  let open_ h dev =
+    wrap_int
+      (fun () -> _open h dev)
+      (fun i -> i_int i)
+      (fun () -> error_string h !verb)
 
   let opendev ?(dev="/dev/video0") () =
     let h = create () in
