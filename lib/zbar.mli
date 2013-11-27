@@ -69,6 +69,10 @@ module Image : sig
   (** [convert i fmt] converts [i] to the pixel format described by
       [fmt], using the fourcc notation ([http://www.fourcc.org]). Use
       "GREY" to obtain an image from which ZBar can decode symbols. *)
+
+  val timestamp : t -> float
+  (** [timestamp i] is the time when the [i] the first data byte of
+      [i] was captured. *)
 end
 
 module ImageScanner : sig

@@ -25,3 +25,4 @@
 <test/*.ml{,i}>: pkg_ctypes.foreign
 <test/*.ml{,i}>: pkg_lwt.unix
 # OASIS_STOP
+true: annot

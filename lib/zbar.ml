@@ -190,10 +190,18 @@ module Image = struct
 
   type t = _t structure ptr
 
+  type timeval
+  let timeval : timeval structure typ = structure "timeval"
+  let tv_sec  = timeval *:* long
+  let tv_usec = timeval *:* long
+  let () = seal timeval
+
   let destroy = foreign ~from "zbar_image_destroy" (ptr t @-> returning void)
   let get_symbols = foreign ~from "zbar_image_get_symbols" (ptr t @-> returning (ptr_opt SymbolSet.t))
   let first_symbol = foreign ~from "zbar_image_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
   let _convert = foreign ~from "zbar_image_convert" (ptr t @-> uint32_t @-> returning (ptr t))
+
+  let get_timestamp = foreign ~from "zbar_image_get_timestamp" (ptr t @-> ptr timeval @-> returning void)
 
   let convert i fmt =
     if String.length fmt <> 4 then
@@ -208,6 +216,14 @@ module Image = struct
       let converted = _convert i fmt in
       destroy i;
       converted
+
+  let timestamp i =
+    let tv = make timeval in
+    ignore (get_timestamp i (addr tv));
+    let secs = getf tv tv_sec
+    and usecs = getf tv tv_usec in
+    Signed.Long.(Pervasives.
+                   (float (to_int secs) +. float (to_int usecs) /. 1_000_000.))
 end
 
 module ImageScanner = struct
