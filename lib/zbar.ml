@@ -69,12 +69,9 @@ type orientation =
     | `Left
   ]
 
-
-let from = Dl.(dlopen ~filename:"libzbar.so" ~flags:[RTLD_LAZY])
-
 let verb = ref 0
-let _set_verbosity = foreign ~from "zbar_set_verbosity" (int @-> returning void)
-let _increase_verbosity = foreign ~from "zbar_increase_verbosity" (void @-> returning void)
+let _set_verbosity = foreign  "zbar_set_verbosity" (int @-> returning void)
+let _increase_verbosity = foreign  "zbar_increase_verbosity" (void @-> returning void)
 
 let set_verbosity v =
   verb := v;
@@ -155,9 +152,9 @@ module Symbol = struct
   type t = _t structure ptr
 
 
-  let next = foreign ~from "zbar_symbol_next" (ptr t @-> returning (ptr_opt t))
-  let _get_type = foreign ~from "zbar_symbol_get_type" (ptr t @-> returning int)
-  let get_data = foreign ~from "zbar_symbol_get_data" (ptr t @-> returning string)
+  let next = foreign  "zbar_symbol_next" (ptr t @-> returning (ptr_opt t))
+  let _get_type = foreign  "zbar_symbol_get_type" (ptr t @-> returning int)
+  let get_data = foreign  "zbar_symbol_get_data" (ptr t @-> returning string)
 
   let get_type h =
     symbology_of_int (_get_type h)
@@ -168,8 +165,8 @@ module SymbolSet = struct
   let t : _t structure typ = structure "zbar_symbol_set_s"
   type t = _t structure ptr
 
-  let length = foreign ~from "zbar_symbol_set_get_size" (ptr t @-> returning int)
-  let first_symbol = foreign ~from "zbar_symbol_set_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
+  let length = foreign  "zbar_symbol_set_get_size" (ptr t @-> returning int)
+  let first_symbol = foreign  "zbar_symbol_set_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
 
   let to_stream h =
     let sym = ref (first_symbol h) in
@@ -190,10 +187,10 @@ module Image = struct
 
   type t = _t structure ptr
 
-  let destroy = foreign ~from "zbar_image_destroy" (ptr t @-> returning void)
-  let get_symbols = foreign ~from "zbar_image_get_symbols" (ptr t @-> returning (ptr_opt SymbolSet.t))
-  let first_symbol = foreign ~from "zbar_image_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
-  let _convert = foreign ~from "zbar_image_convert" (ptr t @-> uint32_t @-> returning (ptr t))
+  let destroy = foreign  "zbar_image_destroy" (ptr t @-> returning void)
+  let get_symbols = foreign  "zbar_image_get_symbols" (ptr t @-> returning (ptr_opt SymbolSet.t))
+  let first_symbol = foreign  "zbar_image_first_symbol" (ptr t @-> returning (ptr_opt Symbol.t))
+  let _convert = foreign  "zbar_image_convert" (ptr t @-> uint32_t @-> returning (ptr t))
 
   let convert i fmt =
     if String.length fmt <> 4 then
@@ -258,18 +255,18 @@ module ImageScanner = struct
     | _ -> raise (Invalid_argument "config_of_int")
 
 
-  let create = foreign ~from "zbar_image_scanner_create" (void @-> returning (ptr t))
-  let destroy = foreign ~from "zbar_image_scanner_destroy" (ptr t @-> returning void)
-  let _set_config = foreign ~from "zbar_image_scanner_set_config" (ptr t @-> int @-> int @-> int @-> returning int)
+  let create = foreign  "zbar_image_scanner_create" (void @-> returning (ptr t))
+  let destroy = foreign  "zbar_image_scanner_destroy" (ptr t @-> returning void)
+  let _set_config = foreign  "zbar_image_scanner_set_config" (ptr t @-> int @-> int @-> int @-> returning int)
 
   let set_config h symbology config value = wrap_int
       (fun () -> _set_config h Symbol.(int_of_symbology symbology) (int_of_config config) value)
       i_int
       (fun () -> "ImageScanner.set_config")
 
-  let _scan_image = foreign ~from "zbar_scan_image" (ptr t @-> ptr Image.t @-> returning int)
-  let _get_results = foreign ~from "zbar_image_scanner_get_results" (ptr t @-> returning (ptr SymbolSet.t))
-  let _enable_cache = foreign ~from "zbar_image_scanner_enable_cache" (ptr t @-> int @-> returning void)
+  let _scan_image = foreign  "zbar_scan_image" (ptr t @-> ptr Image.t @-> returning int)
+  let _get_results = foreign  "zbar_image_scanner_get_results" (ptr t @-> returning (ptr SymbolSet.t))
+  let _enable_cache = foreign  "zbar_image_scanner_enable_cache" (ptr t @-> int @-> returning void)
 
   let enable_cache h v = _enable_cache h (if v then 1 else 0)
 
@@ -288,19 +285,19 @@ module Video = struct
 
   type t = _t structure ptr
 
-  let create = foreign ~from "zbar_video_create" (void @-> returning (ptr t))
-  let destroy = foreign ~from "zbar_video_destroy" (ptr t @-> returning void)
-  let _open = foreign ~from "zbar_video_open" (ptr t @-> string @-> returning int)
-  let _get_fd = foreign ~from "zbar_video_get_fd" (ptr t @-> returning int)
-  let _request_size = foreign ~from "zbar_video_request_size" (ptr t @-> uint @-> uint @-> returning int)
-  let _request_interface = foreign ~from "zbar_video_request_interface" (ptr t @-> int @-> returning int)
-  let _request_iomode = foreign ~from "zbar_video_request_iomode" (ptr t @-> int @-> returning int)
-  let _get_width = foreign ~from "zbar_video_get_width" (ptr t @-> returning int)
-  let _get_height = foreign ~from "zbar_video_get_height" (ptr t @-> returning int)
-  let _init = foreign ~from "zbar_video_init" (ptr t @-> ulong @-> returning int)
-  let _enable = foreign ~from "zbar_video_enable" (ptr t @-> int @-> returning int)
-  let next_image = foreign ~from "zbar_video_next_image" (ptr t @-> returning (ptr_opt Image.t))
-  let error_string = foreign ~from "_zbar_error_string" (ptr t @-> int @-> returning string)
+  let create = foreign  "zbar_video_create" (void @-> returning (ptr t))
+  let destroy = foreign  "zbar_video_destroy" (ptr t @-> returning void)
+  let _open = foreign  "zbar_video_open" (ptr t @-> string @-> returning int)
+  let _get_fd = foreign  "zbar_video_get_fd" (ptr t @-> returning int)
+  let _request_size = foreign  "zbar_video_request_size" (ptr t @-> uint @-> uint @-> returning int)
+  let _request_interface = foreign  "zbar_video_request_interface" (ptr t @-> int @-> returning int)
+  let _request_iomode = foreign  "zbar_video_request_iomode" (ptr t @-> int @-> returning int)
+  let _get_width = foreign  "zbar_video_get_width" (ptr t @-> returning int)
+  let _get_height = foreign  "zbar_video_get_height" (ptr t @-> returning int)
+  let _init = foreign  "zbar_video_init" (ptr t @-> ulong @-> returning int)
+  let _enable = foreign  "zbar_video_enable" (ptr t @-> int @-> returning int)
+  let next_image = foreign  "zbar_video_next_image" (ptr t @-> returning (ptr_opt Image.t))
+  let error_string = foreign  "_zbar_error_string" (ptr t @-> int @-> returning string)
 
   let open_ h dev =
     wrap_int

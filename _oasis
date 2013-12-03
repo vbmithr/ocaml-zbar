@@ -11,6 +11,7 @@ Library zbar
   Path: lib
   Modules: Zbar
   BuildDepends: ctypes.foreign, lwt.unix
+  CCLib: -lzbar
   CompiledObject: best
 
 Executable test

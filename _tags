@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 837a72661b4a487959c9c1a23a6bd9a8)
+# DO NOT EDIT (digest: 3813ea05c1ccc08417298fc514ad4dec)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -15,6 +15,7 @@
 "_darcs": not_hygienic
 # Library zbar
 "lib/zbar.cmxs": use_zbar
+<lib/zbar.{cma,cmxa}>: oasis_library_zbar_cclib
 <lib/*.ml{,i}>: pkg_ctypes.foreign
 <lib/*.ml{,i}>: pkg_lwt.unix
 # Executable test
