@@ -1,0 +1,22 @@
+# OASIS_START
+# DO NOT EDIT (digest: d97e8eeba36e1c6150ddaab8540a3f34)
+version = "0.9"
+description = "Binding to ZBar"
+requires = "lwt.unix"
+archive(byte) = "zbar.cma"
+archive(byte, plugin) = "zbar.cma"
+archive(native) = "zbar.cmxa"
+archive(native, plugin) = "zbar.cmxs"
+exists_if = "zbar.cma"
+package "ctypes" (
+ version = "0.9"
+ description = "Binding to ZBar"
+ requires = "lwt.unix ctypes.foreign"
+ archive(byte) = "ctypes.cma"
+ archive(byte, plugin) = "ctypes.cma"
+ archive(native) = "ctypes.cmxa"
+ archive(native, plugin) = "ctypes.cmxs"
+ exists_if = "ctypes.cma"
+)
+# OASIS_STOP
+

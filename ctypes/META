@@ -1,0 +1,22 @@
+# OASIS_START
+# DO NOT EDIT (digest: de675247db3eaf87eb91bbc99d3c6bd2)
+version = "0.9"
+description = "Binding to ZBar"
+requires = "lwt.unix ctypes.foreign"
+archive(byte) = "zbar.cma"
+archive(byte, plugin) = "zbar.cma"
+archive(native) = "zbar.cmxa"
+archive(native, plugin) = "zbar.cmxs"
+exists_if = "zbar.cma"
+package "classic" (
+ version = "0.9"
+ description = "Binding to ZBar"
+ requires = "lwt.unix"
+ archive(byte) = "classic.cma"
+ archive(byte, plugin) = "classic.cma"
+ archive(native) = "classic.cmxa"
+ archive(native, plugin) = "classic.cmxs"
+ exists_if = "classic.cma"
+)
+# OASIS_STOP
+
