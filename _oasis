@@ -1,17 +1,37 @@
-OASISFormat: 0.3
+OASISFormat: 0.4
 Name: zbar
 Version: 0.9
 Synopsis: Binding to ZBar
 Authors: Vincent Bernardoff <vb@luminar.eu.org>
 License: ISC
-Plugins: META (0.3), DevFiles (0.3)
+Plugins: META (0.4), DevFiles (0.4)
 BuildTools: ocamlbuild
 
+Flag ctypes
+  Description: Build the ctypes binding
+  Default: false
+
+Flag classic
+  Description: Build the classic OCaml FFI binding
+  Default: true
+
 Library zbar
-  Path: lib
+  Build$: flag(classic)
+  Install$: flag(classic)
+  Path: classic
   Modules: Zbar
-  BuildDepends: ctypes.foreign, lwt.unix
-  CCLib: -lzbar -Wl,--no-as-needed
+  BuildDepends: lwt.unix
+  CSources: zbar_stubs.c
+  CCLib: -lzbar
+  CompiledObject: best
+
+Library zbar_ctypes
+  Build$: flag(ctypes)
+  Install$: flag(ctypes)
+  Path: ctypes
+  Modules: Zbar
+  BuildDepends: lwt.unix, ctypes.foreign
+  CCLib: -lzbar
   CompiledObject: best
 
 Executable test
@@ -19,13 +39,14 @@ Executable test
   MainIs: test.ml
   BuildDepends: zbar
   CompiledObject: best
+  Build$: flag(classic)
   Install: false
 
-Document "zbar-api"
+Document zbar
   Title: API reference for Zbar
-  Type: ocamlbuild (0.3)
+  Type: ocamlbuild (0.4)
   Install: true
   InstallDir: $htmldir/api
   BuildTools: ocamldoc
-  XOCamlbuildPath: ./lib
+  XOCamlbuildPath: ./classic
   XOCamlbuildLibraries: zbar
