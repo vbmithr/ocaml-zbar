@@ -4,7 +4,7 @@ Version: 0.9
 Synopsis: Binding to ZBar
 Authors: Vincent Bernardoff <vb@luminar.eu.org>
 License: ISC
-Plugins: META (0.4), DevFiles (0.4)
+Plugins: META (0.4)
 BuildTools: ocamlbuild
 
 Flag ctypes
