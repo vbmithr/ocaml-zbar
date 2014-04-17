@@ -2,7 +2,6 @@
 all: build test doc
 
 PREFIX ?= /usr/local
-NAME=cohttp
 
 CTYPES ?= $(shell if ocamlfind query ctypes >/dev/null 2>&1; then echo --enable-ctypes; fi)
 
@@ -29,7 +28,7 @@ fulltest: setup.bin build
 	./setup.bin -test
 
 reinstall: setup.bin
-	ocamlfind remove $(NAME) || true
+	ocamlfind remove zbar || ocamlfind remove zbar_ctypes || true
 	./setup.bin -reinstall
 
 clean:
