@@ -45,7 +45,6 @@ let _ =
       "--enable-cache", Set cache_enabled, " Enable QR-code cache to suppress doublons";
     ] in
   let usage_msg = "Usage: " ^ Sys.argv.(0) ^ " [options] [/dev/video?]\nOptions are:" in
-  parse speclist ignore usage_msg;
-  if Array.length Sys.argv > 1 then
-    device := Sys.argv.(1);
+  let set_device d = device := d in
+  parse speclist set_device usage_msg;
   Lwt_main.run (main !device !cache_enabled !verbosity !bench)
