@@ -1,36 +1,46 @@
-.PHONY: all clean install build
-all: build test doc
+# OASIS_START
+# DO NOT EDIT (digest: 46f8bd9984975bd4727bed22d0876cd2)
 
-PREFIX ?= /usr/local
+SETUP = ./setup.exe
 
-CTYPES ?= $(shell if ocamlfind query ctypes >/dev/null 2>&1; then echo --enable-ctypes; fi)
+build: setup.data $(SETUP)
+	$(SETUP) -build $(BUILDFLAGS)
 
-setup.bin: setup.ml
-	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
-	rm -f setup.cmx setup.cmi setup.o setup.cmo
+doc: setup.data $(SETUP) build
+	$(SETUP) -doc $(DOCFLAGS)
 
-setup.data: setup.bin
-	./setup.bin -configure $(CTYPES) --prefix $(PREFIX)
+test: setup.data $(SETUP) build
+	$(SETUP) -test $(TESTFLAGS)
 
-build: setup.data setup.bin
-	./setup.bin -build -classic-display
+all: $(SETUP)
+	$(SETUP) -all $(ALLFLAGS)
 
-doc: setup.data setup.bin
-	./setup.bin -doc
+install: setup.data $(SETUP)
+	$(SETUP) -install $(INSTALLFLAGS)
 
-install: setup.bin
-	./setup.bin -install
+uninstall: setup.data $(SETUP)
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
 
-test: setup.bin build
-	./setup.bin -test
+reinstall: setup.data $(SETUP)
+	$(SETUP) -reinstall $(REINSTALLFLAGS)
 
-fulltest: setup.bin build
-	./setup.bin -test
+clean: $(SETUP)
+	$(SETUP) -clean $(CLEANFLAGS)
 
-reinstall: setup.bin
-	ocamlfind remove zbar || ocamlfind remove zbar_ctypes || true
-	./setup.bin -reinstall
+distclean: $(SETUP)
+	$(SETUP) -distclean $(DISTCLEANFLAGS)
+	$(RM) $(SETUP)
 
-clean:
-	ocamlbuild -clean
-	rm -f setup.data setup.log setup.bin
+setup.data: $(SETUP)
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+configure: $(SETUP)
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+setup.exe: setup.ml
+	ocamlfind ocamlopt -o $@ $< || ocamlfind ocamlc -o $@ $< || true
+	$(RM) setup.cmi setup.cmo setup.cmx setup.o
+
+.PHONY: build doc test all install uninstall reinstall clean distclean configure
+
+# OASIS_STOP
