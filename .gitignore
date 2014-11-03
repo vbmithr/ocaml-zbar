@@ -2,6 +2,15 @@
 **/*.byte
 *.bin
 *.docdir
-setup.data
-setup.log
+setup.*
 _build
+configure
+myocamlbuild.ml
+_tags
+Makefile
+**/*.odocl
+**/*.mldylib
+**/*.mllib
+**/*.clib
+**/META
+
