@@ -1,0 +1,18 @@
+opam-version: "1.2"
+maintainer: "vb@luminar.eu.org"
+build: [
+  ["oasis" "setup" ]
+  [make "PREFIX=%{prefix}%"]
+  [make "PREFIX=%{prefix}%" "install"]
+]
+remove: [
+  ["ocamlfind" "remove" "zbar"]
+  ["ocamlfind" "remove" "zbar_ctypes"]
+]
+depends: ["ocamlfind" {build} "lwt" "oasis"]
+depopts: ["ctypes"]
+depexts: [
+[ ["ubuntu"] ["libzbar-dev"] ]
+[ ["debian"] ["libzbar-dev"] ]
+[ ["archlinux"] ["zbar-git"] ]
+]
