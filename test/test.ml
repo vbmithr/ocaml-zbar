@@ -1,6 +1,5 @@
 open Zbar
-
-let (>>=) = Lwt.bind
+open Lwt
 
 let rec display_speed_info nb_read ival =
   nb_read := 0;
@@ -21,19 +20,19 @@ let main dev dim cached verb bench =
   | Some (x, y) -> Video.request_size dev x y
   | _ -> ());
   let imgs = Video.stream dev in
-  let imgs = Lwt_stream.map (fun img -> Image.convert img "GREY") imgs in
-  let symbols = Lwt_stream.map (fun img -> ImageScanner.scan_image scanner img) imgs in
+  let imgs = Lwt_stream.map
+      (fun img -> Image.convert img "GREY") imgs in
+  let symbols = Lwt_stream.map
+      (fun img -> ImageScanner.scan_image scanner img) imgs in
   Lwt_stream.iter (fun syms ->
       if List.length syms > 0 then
         (incr nb_read;
-         if bench then Printf.printf ".%!");
-      if not bench then List.iter (fun s -> Printf.printf "%s\n%!" (Symbol.get_data s)) syms
+         if bench then Printf.printf ".%!"
+        );
+      if not bench then
+        List.iter (fun s -> Printf.printf "%s\n%!" (Symbol.get_data s)) syms
     )
     symbols
-  >>= fun () ->
-  Video.disable dev;
-  Video.closedev dev;
-  Lwt.return ()
 
 let _ =
   let open Arg in
