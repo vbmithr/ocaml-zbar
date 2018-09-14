@@ -103,11 +103,11 @@ module Symbol = struct
   type t
 
   external next : t -> t option = "stub_symbol_next"
-  external _get_type : t -> int = "stub_symbol_get_type"
+  external get_type : t -> int = "stub_symbol_get_type" [@@noalloc]
   external get_data : t -> string = "stub_symbol_get_data"
 
   let get_type h =
-    symbology_of_int (_get_type h)
+    symbology_of_int (get_type h)
 end
 
 module SymbolSet = struct
@@ -126,22 +126,12 @@ end
 module Image = struct
   type t
 
-  external destroy : t -> unit = "stub_image_destroy"
-  external _convert : t -> int32 -> t = "stub_image_convert"
+  external convert : t -> string -> t option = "stub_image_convert"
 
   let convert i fmt =
     if String.length fmt <> 4 then
-      raise (Invalid_argument "Image.convert: format should be a string of length 4")
-    else
-      let open Int32 in
-      let a, b, c, d = Char.(code fmt.[0], code fmt.[1], code fmt.[2], code fmt.[3]) in
-      let fmt = of_int a in
-      let fmt = logor fmt (shift_left (of_int b) 8) in
-      let fmt = logor fmt (shift_left (of_int c) 16) in
-      let fmt = logor fmt (shift_left (of_int d) 24) in
-      let converted = _convert i fmt in
-      destroy i;
-      converted
+      invalid_arg "Image.convert: format should be a string of length 4" ;
+    convert i fmt
 end
 
 module ImageScanner = struct
@@ -174,90 +164,85 @@ module ImageScanner = struct
     | Y_density -> 0x101
 
   external create : unit -> t = "stub_image_scanner_create"
-  external destroy : t -> unit = "stub_image_scanner_destroy"
-  external _set_config : t -> int -> int -> int -> int = "stub_image_scanner_set_config"
+  external set_config : t -> int -> int -> int -> int =
+    "stub_image_scanner_set_config" [@@noalloc]
 
   let set_config h symbology config value = wrap_int
-      (fun () -> _set_config h Symbol.(int_of_symbology symbology) (int_of_config config) value)
+      (fun () ->
+         set_config h (Symbol.int_of_symbology symbology)
+           (int_of_config config) value)
       i_int
       (fun () -> "ImageScanner.set_config")
 
-  external _scan_image : t -> Image.t -> int = "stub_scan_image"
-  external _get_results : t -> SymbolSet.t = "stub_image_scanner_get_results"
-  external _enable_cache : t -> int -> unit = "stub_image_scanner_enable_cache"
+  external scan_image : t -> Image.t -> int =
+    "stub_scan_image" [@@noalloc]
 
-  let enable_cache h v = _enable_cache h (if v then 1 else 0)
+  external get_results : t -> SymbolSet.t = "stub_image_scanner_get_results"
+  external enable_cache : t -> bool -> unit = "stub_image_scanner_enable_cache"
+
+  let disable_cache h = enable_cache h false
+  let enable_cache h = enable_cache h true
 
   let scan_image h i =
-    let res = _scan_image h i in
-    Image.destroy i;
+    let res = scan_image h i in
     match res with
     | 0 -> []
     | n when n < 0 -> raise (Failure (Printf.sprintf "ImageScanner.scan_image returns code %d" n))
-    | _ -> SymbolSet.to_list (_get_results h)
+    | _ -> SymbolSet.to_list (get_results h)
 end
 
 module Video = struct
   type t
 
   external create : unit -> t = "stub_video_create"
-  external destroy : t -> unit = "stub_video_destroy"
-  external _open : t -> string -> int = "stub_video_open"
-  external _get_fd : t -> Unix.file_descr option = "stub_video_get_fd"
-  external _request_size : t -> int -> int -> int = "stub_video_request_size"
-  external _request_interface : t -> int -> int = "stub_video_request_interface"
-  external _request_iomode : t -> int -> int = "stub_video_request_iomode"
-  external _get_width : t -> int = "stub_video_get_width"
-  external _get_height : t -> int = "stub_video_get_height"
-  external _init : t -> int32 -> int = "stub_video_init"
-  external _enable : t -> int -> int = "stub_video_enable"
+  external opendev :
+    t -> string -> int = "stub_video_open" [@@noalloc]
+  external get_fd :
+    t -> Unix.file_descr option = "stub_video_get_fd"
+  external request_size :
+    t -> int -> int -> int = "stub_video_request_size" [@@noalloc]
+  external request_interface :
+    t -> int -> int = "stub_video_request_interface" [@@noalloc]
+  external request_iomode :
+    t -> int -> int = "stub_video_request_iomode" [@@noalloc]
+  external get_width :
+    t -> int = "stub_video_get_width" [@@noalloc]
+  external get_height :
+    t -> int = "stub_video_get_height" [@@noalloc]
+  (* external init : t -> int -> int = "stub_video_init" [@@noalloc] *)
+  external enable : t -> bool -> int = "stub_video_enable" [@@noalloc]
+
   external next_image : t -> Image.t option = "stub_video_next_image"
-  external error_string : t -> int -> string = "_stub_error_string"
+  external error_string : t -> int -> string = "stub_video_error_string"
 
-  let open_ h dev =
-    wrap_int
-      (fun () -> _open h dev)
-      (fun i -> i_int i)
-      (fun () -> error_string h !verb)
-
-  let opendev ?(dev="/dev/video0") () =
-    let h = create () in
-    wrap_int
-      (fun () -> _open h dev)
-      (fun i -> i_int i; h)
-      (fun () -> error_string h !verb)
-
-  let closedev = destroy
+  let opendev ?size ?interface ?iomode dev =
+    let t = create () in
+    wrap_int (fun () -> opendev t dev)
+      (fun _ ->
+        (match size with
+         | None -> ()
+         | Some (w, h) -> ignore (request_size t w h)) ;
+        (match interface with
+         | None -> ()
+         | Some v -> ignore (request_interface t v)) ;
+        (match iomode with
+         | None -> ()
+         | Some v -> ignore (request_iomode t v)) ;
+        t)
+      (fun () -> error_string t !verb)
 
   let get_fd h =
-    match _get_fd h with
+    match get_fd h with
     | Some fd -> Ok fd
     | None -> Error (error_string h !verb)
 
-  let request_size h width height =
-    wrap_int
-      (fun () -> _request_size h width height)
-      i_int
-      (fun () -> error_string h !verb)
-
-  let request_interface h version = wrap_int
-      (fun () -> _request_interface h version)
-      i_int
-      (fun () -> error_string h !verb)
-
-  let request_iomode h mode = wrap_int
-      (fun () -> _request_iomode h mode)
+  let disable h = wrap_int
+      (fun () -> enable h false)
       i_int
       (fun () -> error_string h !verb)
 
   let enable h = wrap_int
-      (fun () -> _enable h 1)
+      (fun () -> enable h true)
       i_int
       (fun () -> error_string h !verb)
-
-  let disable h = wrap_int
-      (fun () -> _enable h 0)
-      i_int
-      (fun () -> error_string h !verb)
-
 end

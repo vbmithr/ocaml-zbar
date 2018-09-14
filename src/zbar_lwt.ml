@@ -26,7 +26,9 @@ let video_stream h =
     let open Lwt_unix in
     let stream =
       Lwt_stream.from begin fun () ->
-        wrap_syscall Read
-          (of_unix_file_descr fd) (fun () -> next_image h)
+        wrap_syscall Read (of_unix_file_descr fd) begin fun () ->
+          Printf.printf "GOT IMAGE\n%!" ;
+          next_image h
+        end
       end in
     Ok stream

@@ -7,24 +7,30 @@ let rec display_speed_info nb_read ival =
   Printf.printf "%d QR/s\n%!" !nb_read;
   display_speed_info nb_read ival
 
-let main dev dim cached verb bench =
+let main dev size cached verb bench =
   let nb_read = ref 0 in
   if bench then Lwt.async (fun () -> display_speed_info nb_read 1.);
   set_verbosity verb;
   let scanner = ImageScanner.create () in
   ImageScanner.set_config scanner None Enable 0;
   ImageScanner.set_config scanner Qrcode Enable 1;
-  ImageScanner.enable_cache scanner cached;
-  let dev = Video.opendev ~dev () in
-  (match dim with
-  | Some (x, y) -> Video.request_size dev x y
-  | _ -> ());
+  begin if cached then
+      ImageScanner.enable_cache
+    else
+      ImageScanner.disable_cache
+  end scanner ;
+  let dev = Video.opendev ?size dev in
+  Printf.printf "Ok, video open.\n" ;
   match Zbar_lwt.video_stream dev with
   | Error msg ->
     Lwt.fail_with msg
   | Ok imgs ->
-    let imgs = Lwt_stream.map
-        (fun img -> Image.convert img "GREY") imgs in
+    Printf.printf "Ok, got fd.\n" ;
+    let image_convert img =
+      match Image.convert img "GREY" with
+      | None -> Lwt.fail_with "Impossible to convert image"
+      | Some i -> Lwt.return i in
+    let imgs = Lwt_stream.map_s image_convert imgs in
     let symbols = Lwt_stream.map
         (fun img -> ImageScanner.scan_image scanner img) imgs in
     Lwt_stream.iter begin fun syms ->

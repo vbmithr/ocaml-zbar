@@ -60,10 +60,7 @@ module Image : sig
   type t
   (** Type of a ZBar image ([zbar_image_t *]). *)
 
-  val destroy : t -> unit
-  (** [destroy i] frees the memory used by [i]. *)
-
-  val convert : t -> string -> t
+  val convert : t -> string -> t option
   (** [convert i fmt] converts [i] to the pixel format described by
       [fmt], using the fourcc notation ([http://www.fourcc.org]). Use
       "GREY" to obtain an image from which ZBar can decode symbols. *)
@@ -88,17 +85,18 @@ module ImageScanner : sig
     (** Type of the argument for the function [set_config]. *)
 
   val create : unit -> t
-  val destroy : t -> unit
 
   val set_config : t -> Symbol.symbology -> config -> int -> unit
   (** Wrapper to [zbar_image_scanner_set_config]. Please consult
       ZBar documentation. *)
 
-  val enable_cache : t -> bool -> unit
+  val enable_cache : t -> unit
   (** [enable_cache s b] enables caching in [s] according to the value
       of [b]. When caching is enabled, more computing power is used,
       but the same symbols observed in subsequent frames are only
       returned once by [scan_image]. *)
+
+  val disable_cache : t -> unit
 
   val scan_image : t -> Image.t -> Symbol.t list
   (** [scan_image s i] is the list of symbols found in [i]. *)
@@ -108,27 +106,16 @@ module Video : sig
   type t
   (** Type of a video device (encapsulate the C type [zbar_video_t *]). *)
 
-  (** {2 Initialisation} *)
+  val opendev :
+    ?size:int * int ->
+    ?interface:int ->
+    ?iomode:int ->
+    string -> t
+  (** [opendev dev] creates a video device reading its frames from
+      [dev]. *)
 
-  (** {3 Low level interface} *)
-
-  val create : unit -> t
-  (** Create the video device structure. *)
-
-  val request_size : t -> int -> int -> unit
-  (** Request a preferred size for the video image from the
-      device. Must be called before [open_]. *)
-
-  val request_interface : t -> int -> unit
-  (** Request a preferred driver interface version for
-      debug/testing. Must be called before [open_]. *)
-
-  val request_iomode : t -> int -> unit
-  (** Request a preferred I/O mode for debug/testing. Must be called
-      before [open_]. *)
-
-  val open_ : t -> string -> unit
-  (** [open_ h dev] opens the video device [dev]. *)
+  val get_width : t -> int
+  val get_height : t -> int
 
   val get_fd : t -> (Unix.file_descr, string) result
   (** [get_fd t] is [t]'s underlying file descriptor. *)
@@ -136,17 +123,6 @@ module Video : sig
   val next_image : t -> Image.t option
   (** [next_image t] retrieve next captured image from [t]. Blocks
      until an image is available. *)
-
-  (** {3 High level interface} *)
-
-  val opendev : ?dev:string -> unit -> t
-  (** [opendev ~dev ()] creates a video device reading its frames from
-      [~dev] (default [/dev/video0]) and opens it with the default
-      settings. It is equivalent to call [create], then [open_]. *)
-
-  (** {2 Using the video device} *)
-
-  val closedev : t -> unit
 
   val enable : t -> unit
   val disable : t -> unit
