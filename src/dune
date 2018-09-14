@@ -1,0 +1,12 @@
+(library
+ (name zbar)
+ (modules zbar)
+ (public_name zbar)
+ (c_names zbar_stubs)
+ (c_library_flags -lzbar))
+
+(library
+ (name zbar_lwt)
+ (modules zbar_lwt)
+ (public_name zbar_lwt)
+ (libraries zbar lwt.unix))

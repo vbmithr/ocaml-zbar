@@ -1,8 +1,0 @@
-PKG zbar
-S classic
-S ctypes
-S test
-B _build/classic
-B _build/ctypes
-B _build/test
-PKG lwt.unix

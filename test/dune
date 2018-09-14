@@ -1,0 +1,6 @@
+(executable
+ (public_name zbar_test_ocaml)
+ (name test)
+ (modules test)
+ (package zbar_lwt)
+ (libraries zbar_lwt))

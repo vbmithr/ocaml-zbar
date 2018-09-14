@@ -1,5 +1,5 @@
+open Lwt.Infix
 open Zbar
-open Lwt
 
 let rec display_speed_info nb_read ival =
   nb_read := 0;
@@ -12,27 +12,31 @@ let main dev dim cached verb bench =
   if bench then Lwt.async (fun () -> display_speed_info nb_read 1.);
   set_verbosity verb;
   let scanner = ImageScanner.create () in
-  ImageScanner.set_config scanner `None `Enable 0;
-  ImageScanner.set_config scanner `Qrcode `Enable 1;
+  ImageScanner.set_config scanner None Enable 0;
+  ImageScanner.set_config scanner Qrcode Enable 1;
   ImageScanner.enable_cache scanner cached;
   let dev = Video.opendev ~dev () in
   (match dim with
   | Some (x, y) -> Video.request_size dev x y
   | _ -> ());
-  let imgs = Video.stream dev in
-  let imgs = Lwt_stream.map
-      (fun img -> Image.convert img "GREY") imgs in
-  let symbols = Lwt_stream.map
-      (fun img -> ImageScanner.scan_image scanner img) imgs in
-  Lwt_stream.iter (fun syms ->
-      if List.length syms > 0 then
-        (incr nb_read;
-         if bench then Printf.printf ".%!"
-        );
+  match Zbar_lwt.video_stream dev with
+  | Error msg ->
+    Lwt.fail_with msg
+  | Ok imgs ->
+    let imgs = Lwt_stream.map
+        (fun img -> Image.convert img "GREY") imgs in
+    let symbols = Lwt_stream.map
+        (fun img -> ImageScanner.scan_image scanner img) imgs in
+    Lwt_stream.iter begin fun syms ->
+      if List.length syms > 0 then begin
+        incr nb_read;
+        if bench then Printf.printf ".%!"
+        end ;
       if not bench then
-        List.iter (fun s -> Printf.printf "%s\n%!" (Symbol.get_data s)) syms
-    )
-    symbols
+        List.iter begin fun s ->
+          Printf.printf "%s\n" (Symbol.get_data s)
+        end syms
+    end symbols
 
 let _ =
   let open Arg in

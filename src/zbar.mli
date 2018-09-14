@@ -28,33 +28,31 @@ module Symbol : sig
   (** Type of a symbol structure ([zbar_symbol_t *]). *)
 
   type symbology =
-    [
-      | `None
-      | `Partial
-      | `Ean2
-      | `Ean5
-      | `Ean8
-      | `Upce
-      | `Isbn10
-      | `Upca
-      | `Ean13
-      | `Composite
-      | `I25
-      | `Databar
-      | `Databar_exp
-      | `Codabar
-      | `Code39
-      | `Pdf417
-      | `Qrcode
-      | `Code93
-      | `Code128
-    ]
-  (** Type of symbols recognized by ZBar. *)
+    | None
+    | Partial
+    | Ean2
+    | Ean5
+    | Ean8
+    | Upce
+    | Isbn10
+    | Upca
+    | Ean13
+    | Composite
+    | I25
+    | Databar
+    | Databar_exp
+    | Codabar
+    | Code39
+    | Pdf417
+    | Qrcode
+    | Code93
+    | Code128
+    (** Type of symbols recognized by ZBar. *)
 
   val get_data : t -> string
   (** [get_data s] is the string encoded in [s]. *)
 
-  val get_type : t -> symbology
+  val get_type : t -> symbology option
   (** [get_type s] is the encoding used in [s]. *)
 end
 
@@ -76,20 +74,18 @@ module ImageScanner : sig
   (** Type of an image scanner ([zbar_image_scanner_t *]). *)
 
   type config =
-    [
-      | `Enable
-      | `Add_check
-      | `Emit_check
-      | `Ascii
-      | `Num
-      | `Min_len
-      | `Max_len
-      | `Uncertainty
-      | `Position
-      | `X_density
-      | `Y_density
-    ]
-  (** Type of the argument for the function [set_config]. *)
+    | Enable
+    | Add_check
+    | Emit_check
+    | Ascii
+    | Num
+    | Min_len
+    | Max_len
+    | Uncertainty
+    | Position
+    | X_density
+    | Y_density
+    (** Type of the argument for the function [set_config]. *)
 
   val create : unit -> t
   val destroy : t -> unit
@@ -134,6 +130,13 @@ module Video : sig
   val open_ : t -> string -> unit
   (** [open_ h dev] opens the video device [dev]. *)
 
+  val get_fd : t -> (Unix.file_descr, string) result
+  (** [get_fd t] is [t]'s underlying file descriptor. *)
+
+  val next_image : t -> Image.t option
+  (** [next_image t] retrieve next captured image from [t]. Blocks
+     until an image is available. *)
+
   (** {3 High level interface} *)
 
   val opendev : ?dev:string -> unit -> t
@@ -145,10 +148,7 @@ module Video : sig
 
   val closedev : t -> unit
 
-  val stream : t -> Image.t Lwt_stream.t
-  (** [stream d] starts the video capture and returns the stream of
-      images from the video device structure [d]. *)
-
+  val enable : t -> unit
   val disable : t -> unit
   (** [disable d] stops the video capture on device structure [d]. *)
 end

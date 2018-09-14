@@ -1,16 +1,6 @@
-**/*.native
-**/*.byte
-*.bin
-*.docdir
-setup.*
 _build
-configure
-myocamlbuild.ml
-_tags
-Makefile
-**/*.odocl
-**/*.mldylib
-**/*.mllib
-**/*.clib
+*.install
+dune-project
 **/META
+**/.merlin
 

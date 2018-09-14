@@ -15,30 +15,6 @@
  *
  *)
 
-module Opt = struct
-  type 'a t = 'a option
-
-  let return x = Some x
-
-  let (>>=) x f = match x with
-    | Some x -> f x
-    | None -> None
-
-  let (>|=) x f = match x with
-    | Some x -> Some (f x)
-    | None -> None
-
-  let run = function
-    | Some x -> x
-    | None -> failwith "Opt.run"
-
-  let default d = function
-    | Some x -> x
-    | None -> d
-end
-
-let (>>=) = Lwt.(>>=)
-
 let i_int (i:int) = ignore i
 
 let wrap_int f success error =
@@ -46,102 +22,83 @@ let wrap_int f success error =
   | -1 -> failwith (error ())
   | oth -> success oth
 
-type color =
-  [
-    | `Space
-    | `Bar
-  ]
-
-let int_of_color = function
-  | `Space -> 0
-  | `Bar -> 1
-
-type orientation =
-  [
-    | `Unknown
-    | `Up
-    | `Right
-    | `Down
-    | `Left
-  ]
-
 let verb = ref 0
-external _set_verbosity : int -> unit = "stub_set_verbosity"
-external _increase_verbosity : unit -> unit = "stub_increase_verbosity"
+external set_verbosity :
+  int -> unit = "stub_set_verbosity" [@@noalloc]
+external increase_verbosity :
+  unit -> unit = "stub_increase_verbosity" [@@noalloc]
 
 let set_verbosity v =
   verb := v;
-  _set_verbosity v
+  set_verbosity v
 
 let increase_verbosity () =
   incr verb;
-  _increase_verbosity ()
+  increase_verbosity ()
 
 module Symbol = struct
   type symbology =
-    [
-      | `None
-      | `Partial
-      | `Ean2
-      | `Ean5
-      | `Ean8
-      | `Upce
-      | `Isbn10
-      | `Upca
-      | `Ean13
-      | `Composite
-      | `I25
-      | `Databar
-      | `Databar_exp
-      | `Codabar
-      | `Code39
-      | `Pdf417
-      | `Qrcode
-      | `Code93
-      | `Code128
-    ]
+    | None
+    | Partial
+    | Ean2
+    | Ean5
+    | Ean8
+    | Upce
+    | Isbn10
+    | Upca
+    | Ean13
+    | Composite
+    | I25
+    | Databar
+    | Databar_exp
+    | Codabar
+    | Code39
+    | Pdf417
+    | Qrcode
+    | Code93
+    | Code128
 
   let int_of_symbology = function
-    | `None -> 0
-    | `Partial -> 1
-    | `Ean2 -> 2
-    | `Ean5 -> 5
-    | `Ean8 -> 8
-    | `Upce -> 9
-    | `Isbn10 -> 10
-    | `Upca -> 12
-    | `Ean13 -> 13
-    | `Composite -> 14
-    | `I25 -> 15
-    | `Databar -> 25
-    | `Databar_exp -> 34
-    | `Codabar -> 35
-    | `Code39 -> 39
-    | `Pdf417 -> 57
-    | `Qrcode -> 64
-    | `Code93 -> 93
-    | `Code128 -> 128
+    | None -> 0
+    | Partial -> 1
+    | Ean2 -> 2
+    | Ean5 -> 5
+    | Ean8 -> 8
+    | Upce -> 9
+    | Isbn10 -> 10
+    | Upca -> 12
+    | Ean13 -> 13
+    | Composite -> 14
+    | I25 -> 15
+    | Databar -> 25
+    | Databar_exp -> 34
+    | Codabar -> 35
+    | Code39 -> 39
+    | Pdf417 -> 57
+    | Qrcode -> 64
+    | Code93 -> 93
+    | Code128 -> 128
 
   let symbology_of_int = function
-    | 0 -> `None
-    | 1 -> `Partial
-    | 2 -> `Ean2
-    | 3 -> `Ean5
-    | 8 -> `Ean8
-    | 9 -> `Upce
-    | 10 -> `Isbn10
-    | 12 -> `Upca
-    | 13 -> `Ean13
-    | 14 -> `Composite
-    | 15 -> `I25
-    | 25 -> `Databar
-    | 34 -> `Databar_exp
-    | 39 -> `Code39
-    | 57 -> `Pdf417
-    | 64 -> `Qrcode
-    | 93 -> `Code93
-    | 128 -> `Code128
-    | _ -> raise (Invalid_argument "symbol_of_int")
+    | 0   -> Some None
+    | 1   -> Some Partial
+    | 2   -> Some Ean2
+    | 3   -> Some Ean5
+    | 8   -> Some Ean8
+    | 9   -> Some Upce
+    | 10  -> Some Isbn10
+    | 12  -> Some Upca
+    | 13  -> Some Ean13
+    | 14  -> Some Composite
+    | 15  -> Some I25
+    | 25  -> Some Databar
+    | 34  -> Some Databar_exp
+    | 39  -> Some Code39
+    | 57  -> Some Pdf417
+    | 64  -> Some Qrcode
+    | 93  -> Some Code93
+    | 128 -> Some Code128
+    | _   -> None
 
   type t
 
@@ -156,13 +113,7 @@ end
 module SymbolSet = struct
   type t
 
-  external length : t -> int = "stub_symbol_set_get_size"
   external first_symbol : t -> Symbol.t option = "stub_symbol_set_first_symbol"
-
-  let to_stream h =
-    let sym = ref (first_symbol h) in
-    Lwt_stream.from_direct
-      (fun () -> let cur = !sym in sym := Opt.(!sym >>= fun s -> Symbol.next s); cur)
 
   let to_list h =
     let rec inner acc = function
@@ -176,8 +127,6 @@ module Image = struct
   type t
 
   external destroy : t -> unit = "stub_image_destroy"
-  external get_symbols : t -> SymbolSet.t option = "stub_image_get_symbols"
-  external first_symbol : t -> Symbol.t option = "stub_image_first_symbol"
   external _convert : t -> int32 -> t = "stub_image_convert"
 
   let convert i fmt =
@@ -199,46 +148,30 @@ module ImageScanner = struct
   type t
 
   type config =
-    [
-      | `Enable
-      | `Add_check
-      | `Emit_check
-      | `Ascii
-      | `Num
-      | `Min_len
-      | `Max_len
-      | `Uncertainty
-      | `Position
-      | `X_density
-      | `Y_density
-    ]
+    | Enable
+    | Add_check
+    | Emit_check
+    | Ascii
+    | Num
+    | Min_len
+    | Max_len
+    | Uncertainty
+    | Position
+    | X_density
+    | Y_density
 
   let int_of_config = function
-    | `Enable -> 0
-    | `Add_check -> 1
-    | `Emit_check -> 2
-    | `Ascii -> 3
-    | `Num -> 4
-    | `Min_len -> 0x20
-    | `Max_len -> 0x21
-    | `Uncertainty -> 0x40
-    | `Position -> 0x80
-    | `X_density -> 0x100
-    | `Y_density -> 0x101
-
-  let config_of_int = function
-    | 0 -> `Enable
-    | 1 -> `Add_check
-    | 2 -> `Emit_check
-    | 3 -> `Ascii
-    | 4 -> `Num
-    | 0x20 -> `Min_len
-    | 0x21 -> `Max_len
-    | 0x40 -> `Uncertainty
-    | 0x80 -> `Postition
-    | 0x100 -> `X_density
-    | 0x101 -> `Y_density
-    | _ -> raise (Invalid_argument "config_of_int")
+    | Enable -> 0
+    | Add_check -> 1
+    | Emit_check -> 2
+    | Ascii -> 3
+    | Num -> 4
+    | Min_len -> 0x20
+    | Max_len -> 0x21
+    | Uncertainty -> 0x40
+    | Position -> 0x80
+    | X_density -> 0x100
+    | Y_density -> 0x101
 
   external create : unit -> t = "stub_image_scanner_create"
   external destroy : t -> unit = "stub_image_scanner_destroy"
@@ -261,7 +194,7 @@ module ImageScanner = struct
     match res with
     | 0 -> []
     | n when n < 0 -> raise (Failure (Printf.sprintf "ImageScanner.scan_image returns code %d" n))
-    | n -> SymbolSet.to_list (_get_results h)
+    | _ -> SymbolSet.to_list (_get_results h)
 end
 
 module Video = struct
@@ -270,7 +203,7 @@ module Video = struct
   external create : unit -> t = "stub_video_create"
   external destroy : t -> unit = "stub_video_destroy"
   external _open : t -> string -> int = "stub_video_open"
-  external _get_fd : t -> int = "stub_video_get_fd"
+  external _get_fd : t -> Unix.file_descr option = "stub_video_get_fd"
   external _request_size : t -> int -> int -> int = "stub_video_request_size"
   external _request_interface : t -> int -> int = "stub_video_request_interface"
   external _request_iomode : t -> int -> int = "stub_video_request_iomode"
@@ -296,10 +229,10 @@ module Video = struct
 
   let closedev = destroy
 
-  let get_fd h : Unix.file_descr = wrap_int
-      (fun () -> _get_fd h)
-      Obj.magic
-      (fun () -> error_string h !verb)
+  let get_fd h =
+    match _get_fd h with
+    | Some fd -> Ok fd
+    | None -> Error (error_string h !verb)
 
   let request_size h width height =
     wrap_int
@@ -326,13 +259,5 @@ module Video = struct
       (fun () -> _enable h 0)
       i_int
       (fun () -> error_string h !verb)
-
-  let stream h =
-    enable h;
-    Lwt_stream.from (fun () ->
-        Lwt_unix.(wrap_syscall
-                    Read
-                    (of_unix_file_descr (get_fd h))
-                    (fun () -> next_image h)))
 
 end
